@@ -1,4 +1,8 @@
 <?php
+namespace libmona;
+
+use Exception;
+use Throwable;
 
 const B58_ALPHABET = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
 

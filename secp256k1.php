@@ -1,4 +1,8 @@
 <?php
+namespace libmona;
+
+use Exception;
+use Throwable;
 
 function gmp_mod_n($x, $m) {
     $r = gmp_mod($x, $m);

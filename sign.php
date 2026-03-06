@@ -1,4 +1,8 @@
 <?php
+namespace libmona;
+
+use Exception;
+use Throwable;
 
 function signmessage(string $message, string $privkey): array {
     $msg_bytes = $message;

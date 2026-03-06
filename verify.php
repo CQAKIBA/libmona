@@ -1,4 +1,8 @@
 <?php
+namespace libmona;
+
+use Exception;
+use Throwable;
 
 function decode_sig_header(int $header): array {
     if ($header < 27 || $header > 42) {
