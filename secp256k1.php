@@ -3,6 +3,7 @@ namespace libmona;
 
 use Exception;
 use Throwable;
+
 function gmp_mod_n($x, $m) {
     $r = gmp_mod($x, $m);
     if (gmp_cmp($r, 0) < 0) {

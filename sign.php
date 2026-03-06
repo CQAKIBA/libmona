@@ -3,6 +3,7 @@ namespace libmona;
 
 use Exception;
 use Throwable;
+
 function signmessage(string $message, string $privkey): array {
     $msg_bytes = $message;
     $h32 = electrum_mona_message_hash($msg_bytes);

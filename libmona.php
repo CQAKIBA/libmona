@@ -3,6 +3,7 @@ namespace libmona;
 
 use Exception;
 use Throwable;
+
 function bin2hex_lc(string $b): string {
     return strtolower(bin2hex($b));
 }
