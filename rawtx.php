@@ -225,11 +225,6 @@ function p2wpkh_scriptcode_from_pubkey_hash(string $h160): string {
     return p2pkh_scriptpubkey_from_pubkey_hash($h160);
 }
 
-function pubkey_to_wif(string $secret32, bool $compressed = true): string {
-    $payload = chr(MONA_WIF) . $secret32 . ($compressed ? "\x01" : '');
-    return base58check_encode($payload);
-}
-
 function derive_key_material_from_raw(string $privkey_raw_hex): array {
     $secret32 = hex2bin_safe(str_pad(strtolower(trim($privkey_raw_hex)), 64, '0', STR_PAD_LEFT));
     if (strlen($secret32) !== 32) {
