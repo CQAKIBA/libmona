@@ -135,12 +135,6 @@ if (PHP_SAPI === 'cli' && realpath($_SERVER['SCRIPT_FILENAME']) === __FILE__) {
         }
 
         switch ($command) {
-            case 'createnewaddress':
-                $save = array_key_exists('save', $argMap) ? $parseBool01($argMap['save'], 'save') : false;
-                $label = $argMap['label'] ?? '';
-                $result = \libmona\createnewaddress($save, (string)$label);
-                break;
-
             case 'signmessage':
                 $result = \libmona\signmessage((string)$argMap['message'], (string)$argMap['privkey']);
                 break;
