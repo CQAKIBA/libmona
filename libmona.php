@@ -11,53 +11,70 @@ require_once __DIR__ . '/sign.php';
 require_once __DIR__ . '/verify.php';
 
 if (PHP_SAPI === 'cli' && realpath($_SERVER['SCRIPT_FILENAME']) === __FILE__) {
+    $commands = [
+        'createnewaddress' => [
+            'usage' => 'createnewaddress [save(0|1)] [label]',
+            'required' => 0,
+            'params' => ['save', 'label'],
+            'example' => "php libmona.php createnewaddress 1 'my_wallet_label'",
+        ],
+        'signmessage' => [
+            'usage' => 'signmessage <message> <privkey>',
+            'required' => 2,
+            'params' => ['message', 'privkey'],
+            'example' => "php libmona.php signmessage 'hello mona' 'L1aW4aubDFB7yfras2S1mN3bqg9w7j1Huxu6mA5fN2v9oQqv4nY2'",
+        ],
+        'verifymessage' => [
+            'usage' => 'verifymessage <address> <message> <signature>',
+            'required' => 3,
+            'params' => ['address', 'message', 'signature'],
+            'example' => "php libmona.php verifymessage 'PM9m3P4QvYpV4Yh6Yf8a8C7oD8uQn2fBvQ' 'hello mona' 'H8zQ7z6...base64sig...'",
+        ],
+        'createrawtransaction' => [
+            'usage' => 'createrawtransaction <inputs_json> <outputs_json> [locktime] [replaceable(0|1)] [version]',
+            'required' => 2,
+            'params' => ['inputs_json', 'outputs_json', 'locktime', 'replaceable', 'version'],
+            'example' => "php libmona.php createrawtransaction '[{\"txid\":\"95a6a0fb469f83b2d135a5d43ab0642fc31217938a290e3e6e1832babff708f3\",\"vout\":0}]' '[{\"mona1qxc7zz03f4eqql4jgwf9pzcsw3h537c5axqervu\":\"0.01000000\"},{\"mona1qsja6dj05827d0htzavj0ygxw77qh0tc07yt2ka\":\"0.08997464\"}]'",
+        ],
+        'signrawtransactionwithrawkey' => [
+            'usage' => 'signrawtransactionwithrawkey <rawtx_hex> <prevouts_json> <privkey_raw_hex>',
+            'required' => 3,
+            'params' => ['rawtx_hex', 'prevouts_json', 'privkey_raw_hex'],
+            'example' => "php libmona.php signrawtransactionwithrawkey '0200...0000' '[{\"txid\":\"95a6a0fb469f83b2d135a5d43ab0642fc31217938a290e3e6e1832babff708f3\",\"vout\":0,\"address\":\"mona1qxc7zz03f4eqql4jgwf9pzcsw3h537c5axqervu\",\"amount\":\"0.10000000\"}]' 'your_32byte_hex_privkey'",
+        ],
+        'signrawtransactionwithwifkey' => [
+            'usage' => 'signrawtransactionwithwifkey <rawtx_hex> <prevouts_json> <privkey_wif>',
+            'required' => 3,
+            'params' => ['rawtx_hex', 'prevouts_json', 'privkey_wif'],
+            'example' => "php libmona.php signrawtransactionwithwifkey '0200000001f308f7bfba32186e3e0e298a931712c32f64b03ad4a535d1b2839f46fba0a6950000000000ffffffff0240420f0000000000160014363c213e29ae400fd648724a11620e8de91f629d584a89000000000016001484bba6c9f43abcd7dd62eb24f220cef78177af0f00000000' '[{\"txid\":\"95a6a0fb469f83b2d135a5d43ab0642fc31217938a290e3e6e1832babff708f3\",\"vout\":0,\"address\":\"mona1qxc7zz03f4eqql4jgwf9pzcsw3h537c5axqervu\",\"amount\":\"0.10000000\"}]' 'T8Q5YNuVqzVkQSo8joGvjJciATWZw9AmDScoE3AWwWoF8p2ZYnKY'",
+        ],
+        'signrawtransactionwithaddress' => [
+            'usage' => 'signrawtransactionwithaddress <rawtx_hex> <prevouts_json> <address> [keyfile]',
+            'required' => 3,
+            'params' => ['rawtx_hex', 'prevouts_json', 'address', 'keyfile'],
+            'example' => "php libmona.php signrawtransactionwithaddress '0200...0000' '[{\"txid\":\"95a6a0fb469f83b2d135a5d43ab0642fc31217938a290e3e6e1832babff708f3\",\"vout\":0,\"address\":\"mona1qxc7zz03f4eqql4jgwf9pzcsw3h537c5axqervu\",\"amount\":\"0.10000000\"}]' 'mona1q...' '/path/to/address.json'",
+        ],
+    ];
+
+    $printUsage = static function () use ($commands): void {
+        echo "usage: php libmona.php <command> ...\n\n";
+        echo "commands:\n";
+        foreach ($commands as $name => $spec) {
+            echo "  - {$name}: {$spec['usage']}\n";
+        }
+        echo "\nexamples:\n";
+        foreach ($commands as $spec) {
+            echo "  {$spec['example']}\n";
+        }
+    };
+
+    $command = $argv[1] ?? null;
+    if ($command === null || !isset($commands[$command])) {
+        $printUsage();
+        exit(1);
+    }
+
     try {
-        $commands = [
-            'createnewaddress' => [
-                'usage' => 'createnewaddress [save(0|1)] [label]',
-                'required' => 0,
-                'params' => ['save', 'label'],
-            ],
-            'signmessage' => [
-                'usage' => 'signmessage <message> <privkey>',
-                'required' => 2,
-                'params' => ['message', 'privkey'],
-            ],
-            'verifymessage' => [
-                'usage' => 'verifymessage <address> <message> <signature>',
-                'required' => 3,
-                'params' => ['address', 'message', 'signature'],
-            ],
-            'createrawtransaction' => [
-                'usage' => 'createrawtransaction <inputs_json> <outputs_json> [locktime] [replaceable(0|1)] [version]',
-                'required' => 2,
-                'params' => ['inputs_json', 'outputs_json', 'locktime', 'replaceable', 'version'],
-            ],
-            'signrawtransactionwithrawkey' => [
-                'usage' => 'signrawtransactionwithrawkey <rawtx_hex> <prevouts_json> <privkey_raw_hex>',
-                'required' => 3,
-                'params' => ['rawtx_hex', 'prevouts_json', 'privkey_raw_hex'],
-            ],
-            'signrawtransactionwithwifkey' => [
-                'usage' => 'signrawtransactionwithwifkey <rawtx_hex> <prevouts_json> <privkey_wif>',
-                'required' => 3,
-                'params' => ['rawtx_hex', 'prevouts_json', 'privkey_wif'],
-            ],
-            'signrawtransactionwithaddress' => [
-                'usage' => 'signrawtransactionwithaddress <rawtx_hex> <prevouts_json> <address> [keyfile]',
-                'required' => 3,
-                'params' => ['rawtx_hex', 'prevouts_json', 'address', 'keyfile'],
-            ],
-        ];
-
-        $command = $argv[1] ?? null;
-        if ($command === null) {
-            throw new \InvalidArgumentException('command is required');
-        }
-        if (!isset($commands[$command])) {
-            throw new \InvalidArgumentException('unsupported command: ' . $command);
-        }
-
         $decodeJsonArg = static function (string $json, string $name): array {
             $decoded = json_decode($json, true);
             if (!is_array($decoded) || json_last_error() !== JSON_ERROR_NONE) {
@@ -161,10 +178,12 @@ if (PHP_SAPI === 'cli' && realpath($_SERVER['SCRIPT_FILENAME']) === __FILE__) {
         }
 
         echo json_encode($result, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) . PHP_EOL;
+        exit(0);
     } catch (\Throwable $e) {
-        echo json_encode([
+        fwrite(STDERR, json_encode([
             'error' => $e->getMessage(),
-        ], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) . PHP_EOL;
+            'command' => (string)$command,
+        ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) . PHP_EOL);
         exit(1);
     }
 }
