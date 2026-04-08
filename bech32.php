@@ -108,3 +108,56 @@ function bech32_segwit_address(string $hrp, int $witver, string $witprog): strin
     $data = array_merge([$witver], convertbits($prog, 8, 5, true));
     return bech32_encode($hrp, $data);
 }
+
+
+function bech32_verify_checksum(string $hrp, array $data): bool {
+    return bech32_polymod(array_merge(bech32_hrp_expand($hrp), $data)) === 1;
+}
+
+function bech32_decode(string $addr): array {
+    if ($addr === '' || strtolower($addr) !== $addr && strtoupper($addr) !== $addr) {
+        throw new Exception('mixed-case bech32 string');
+    }
+    $addr = strtolower($addr);
+    $pos = strrpos($addr, '1');
+    if ($pos === false || $pos < 1 || $pos + 7 > strlen($addr)) {
+        throw new Exception('invalid bech32 separator');
+    }
+    $hrp = substr($addr, 0, $pos);
+    $dataPart = substr($addr, $pos + 1);
+    $charset = "qpzry9x8gf2tvdw0s3jn54khce6mua7l";
+    $map = [];
+    for ($i = 0; $i < strlen($charset); $i++) {
+        $map[$charset[$i]] = $i;
+    }
+    $data = [];
+    foreach (str_split($dataPart) as $c) {
+        if (!isset($map[$c])) {
+            throw new Exception('invalid bech32 char');
+        }
+        $data[] = $map[$c];
+    }
+    if (!bech32_verify_checksum($hrp, $data)) {
+        throw new Exception('bad bech32 checksum');
+    }
+    return [$hrp, array_slice($data, 0, -6)];
+}
+
+function bech32_decode_segwit_address(string $addr): array {
+    [$hrp, $data] = bech32_decode($addr);
+    if (count($data) < 1) {
+        throw new Exception('bech32 data too short');
+    }
+    $witver = $data[0];
+    $prog = pack('C*', ...convertbits(array_slice($data, 1), 5, 8, false));
+    if ($witver < 0 || $witver > 16) {
+        throw new Exception('witver out of range');
+    }
+    if (strlen($prog) < 2 || strlen($prog) > 40) {
+        throw new Exception('witprog bad length');
+    }
+    if ($witver === 0 && (strlen($prog) !== 20 && strlen($prog) !== 32)) {
+        throw new Exception('witprog bad length for v0');
+    }
+    return [$hrp, $witver, $prog];
+}
