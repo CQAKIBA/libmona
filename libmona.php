@@ -12,6 +12,12 @@ require_once __DIR__ . '/verify.php';
 
 if (PHP_SAPI === 'cli' && realpath($_SERVER['SCRIPT_FILENAME']) === __FILE__) {
     $commands = [
+        'createnewaddress' => [
+            'usage' => 'createnewaddress [save(0|1)] [label]',
+            'required' => 0,
+            'params' => ['save', 'label'],
+            'example' => "php libmona.php createnewaddress 1 'my_wallet_label'",
+        ],
         'signmessage' => [
             'usage' => 'signmessage <message> <privkey>',
             'required' => 2,
