@@ -61,6 +61,7 @@ function createnewaddress(bool $save = false, string $label = ''): array {
             }
         }
         $rows[] = [
+            'create' => gmdate('c'),
             'label' => $label,
             'privkey_wif' => $result['privkey_wif'],
             'privkey_raw' => $result['privkey_raw'],
