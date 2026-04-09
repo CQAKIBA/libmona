@@ -13,10 +13,10 @@ require_once __DIR__ . '/verify.php';
 if (PHP_SAPI === 'cli' && realpath($_SERVER['SCRIPT_FILENAME']) === __FILE__) {
     $commands = [
         'createnewaddress' => [
-            'usage' => 'createnewaddress [save(0|1)] [label]',
+            'usage' => 'createnewaddress ( save label )',
             'required' => 0,
             'params' => ['save', 'label'],
-            'example' => "php libmona.php createnewaddress 1 'my_wallet_label'",
+            'example' => "php libmona.php createnewaddress true 'my_wallet_label'",
         ],
         'signmessage' => [
             'usage' => 'signmessage <message> <privkey>',
@@ -25,16 +25,22 @@ if (PHP_SAPI === 'cli' && realpath($_SERVER['SCRIPT_FILENAME']) === __FILE__) {
             'example' => "php libmona.php signmessage 'hello mona' 'L1aW4aubDFB7yfras2S1mN3bqg9w7j1Huxu6mA5fN2v9oQqv4nY2'",
         ],
         'verifymessage' => [
-            'usage' => 'verifymessage <address> <message> <signature>',
+            'usage' => 'verifymessage <address> <signature> <message>',
             'required' => 3,
-            'params' => ['address', 'message', 'signature'],
-            'example' => "php libmona.php verifymessage 'PM9m3P4QvYpV4Yh6Yf8a8C7oD8uQn2fBvQ' 'hello mona' 'H8zQ7z6...base64sig...'",
+            'params' => ['address', 'signature', 'message'],
+            'example' => "php libmona.php verifymessage 'PM9m3P4QvYpV4Yh6Yf8a8C7oD8uQn2fBvQ' 'H8zQ7z6...base64sig...' 'hello mona'",
         ],
         'createrawtransaction' => [
-            'usage' => 'createrawtransaction <inputs_json> <outputs_json> [locktime] [replaceable(0|1)] [version]',
+            'usage' => 'createrawtransaction [{"txid":"hex","vout":n,"sequence":n},...] [{"address":amount},{"data":"hex"},...] ( locktime replaceable version )',
             'required' => 2,
             'params' => ['inputs_json', 'outputs_json', 'locktime', 'replaceable', 'version'],
             'example' => "php libmona.php createrawtransaction '[{\"txid\":\"95a6a0fb469f83b2d135a5d43ab0642fc31217938a290e3e6e1832babff708f3\",\"vout\":0}]' '[{\"mona1qxc7zz03f4eqql4jgwf9pzcsw3h537c5axqervu\":\"0.01000000\"},{\"mona1qsja6dj05827d0htzavj0ygxw77qh0tc07yt2ka\":\"0.08997464\"}]'",
+        ],
+        'signrawtransactionwithkey' => [
+            'usage' => 'signrawtransactionwithkey "hexstring" ["privatekey",...] ( [{"txid":"hex","vout":n,"scriptPubKey":"hex","redeemScript":"hex","witnessScript":"hex","amount":amount},...] "sighashtype" )',
+            'required' => 2,
+            'params' => ['rawtx_hex', 'privkeys_json', 'prevtxs_json', 'sighashtype'],
+            'example' => "php libmona.php signrawtransactionwithkey '0200...0000' '[\"T8Q5...\"]' '[{\"txid\":\"95a6...\",\"vout\":0,\"address\":\"mona1q...\",\"amount\":\"0.10000000\"}]' 'ALL'",
         ],
         'signrawtransactionwithrawkey' => [
             'usage' => 'signrawtransactionwithrawkey <rawtx_hex> <prevouts_json> <privkey_raw_hex>',
@@ -57,7 +63,9 @@ if (PHP_SAPI === 'cli' && realpath($_SERVER['SCRIPT_FILENAME']) === __FILE__) {
     ];
 
     $printUsage = static function () use ($commands): void {
-        echo "usage: php libmona.php <command> ...\n\n";
+        echo "usage:\n";
+        echo "  php libmona.php <command> [params...]\n";
+        echo "  php libmona.php -json '{\"method\":\"<command>\",\"params\":[...]}'\n\n";
         echo "commands:\n";
         foreach ($commands as $name => $spec) {
             echo "  - {$name}: {$spec['usage']}\n";
@@ -68,17 +76,14 @@ if (PHP_SAPI === 'cli' && realpath($_SERVER['SCRIPT_FILENAME']) === __FILE__) {
         }
     };
 
-    $command = $argv[1] ?? null;
-    if ($command === null || !isset($commands[$command])) {
-        $printUsage();
-        exit(1);
-    }
-
     try {
-        $decodeJsonArg = static function (string $json, string $name): array {
+        $decodeJsonArg = static function ($json, string $name) {
+            if (is_array($json)) {
+                return $json;
+            }
             $decoded = json_decode($json, true);
-            if (!is_array($decoded) || json_last_error() !== JSON_ERROR_NONE) {
-                $message = json_last_error() === JSON_ERROR_NONE ? 'JSON must decode to array' : json_last_error_msg();
+            if (json_last_error() !== JSON_ERROR_NONE || !is_array($decoded)) {
+                $message = json_last_error() === JSON_ERROR_NONE ? 'JSON must decode to array/object' : json_last_error_msg();
                 throw new \InvalidArgumentException($name . ' JSON不正: ' . $message);
             }
 
@@ -89,41 +94,61 @@ if (PHP_SAPI === 'cli' && realpath($_SERVER['SCRIPT_FILENAME']) === __FILE__) {
             if (is_bool($value)) {
                 return $value;
             }
-            if ($value === 1 || $value === '1') {
+            if ($value === 1 || $value === '1' || $value === 'true' || $value === 'TRUE') {
                 return true;
             }
-            if ($value === 0 || $value === '0') {
+            if ($value === 0 || $value === '0' || $value === 'false' || $value === 'FALSE') {
                 return false;
             }
 
-            throw new \InvalidArgumentException($name . ' must be 0 or 1');
+            throw new \InvalidArgumentException($name . ' must be true/false or 0/1');
         };
 
-        $usage = $commands[$command]['usage'];
-        $args = array_slice($argv, 2);
+        $args = array_slice($argv, 1);
+        $command = null;
         $argMap = [];
 
         if (($args[0] ?? null) === '-json') {
             if (!isset($args[1])) {
-                throw new \InvalidArgumentException('usage: ' . $usage);
+                throw new \InvalidArgumentException('usage: php libmona.php -json \'{"method":"<command>","params":[...]}\'');
             }
-            $jsonArgs = json_decode($args[1], true);
-            if (!is_array($jsonArgs) || json_last_error() !== JSON_ERROR_NONE) {
+            $rpcLike = json_decode($args[1], true);
+            if (!is_array($rpcLike) || json_last_error() !== JSON_ERROR_NONE) {
                 $message = json_last_error() === JSON_ERROR_NONE ? 'JSON must decode to object/array' : json_last_error_msg();
                 throw new \InvalidArgumentException('引数 JSON不正: ' . $message);
             }
-            foreach ($commands[$command]['params'] as $paramName) {
-                if (array_key_exists($paramName, $jsonArgs)) {
-                    $argMap[$paramName] = $jsonArgs[$paramName];
+            if (!isset($rpcLike['method']) || !is_string($rpcLike['method'])) {
+                throw new \InvalidArgumentException('method is required in -json payload');
+            }
+            $command = $rpcLike['method'];
+            if (!isset($commands[$command])) {
+                throw new \InvalidArgumentException('unknown method: ' . $command);
+            }
+            $params = $rpcLike['params'] ?? [];
+            if (!is_array($params)) {
+                throw new \InvalidArgumentException('params must be array');
+            }
+            foreach ($commands[$command]['params'] as $index => $paramName) {
+                if (array_key_exists($index, $params)) {
+                    $argMap[$paramName] = $params[$index];
+                } elseif (array_key_exists($paramName, $params)) {
+                    $argMap[$paramName] = $params[$paramName];
                 }
             }
             $requiredParams = array_slice($commands[$command]['params'], 0, $commands[$command]['required']);
             foreach ($requiredParams as $requiredParam) {
                 if (!array_key_exists($requiredParam, $argMap)) {
-                    throw new \InvalidArgumentException('usage: ' . $usage);
+                    throw new \InvalidArgumentException('usage: ' . $commands[$command]['usage']);
                 }
             }
         } else {
+            $command = $args[0] ?? null;
+            if ($command === null || !isset($commands[$command])) {
+                $printUsage();
+                exit(1);
+            }
+            $usage = $commands[$command]['usage'];
+            $args = array_slice($args, 1);
             if (count($args) < $commands[$command]['required']) {
                 throw new \InvalidArgumentException('usage: ' . $usage);
             }
@@ -150,8 +175,8 @@ if (PHP_SAPI === 'cli' && realpath($_SERVER['SCRIPT_FILENAME']) === __FILE__) {
                 break;
 
             case 'createrawtransaction':
-                $inputs = $decodeJsonArg((string)$argMap['inputs_json'], 'inputs_json');
-                $outputs = $decodeJsonArg((string)$argMap['outputs_json'], 'outputs_json');
+                $inputs = $decodeJsonArg($argMap['inputs_json'], 'inputs_json');
+                $outputs = $decodeJsonArg($argMap['outputs_json'], 'outputs_json');
                 $locktime = isset($argMap['locktime']) ? (int)$argMap['locktime'] : 0;
                 $replaceable = array_key_exists('replaceable', $argMap) ? $parseBool01($argMap['replaceable'], 'replaceable') : false;
                 $version = isset($argMap['version']) ? (int)$argMap['version'] : 2;
@@ -160,18 +185,41 @@ if (PHP_SAPI === 'cli' && realpath($_SERVER['SCRIPT_FILENAME']) === __FILE__) {
                 ];
                 break;
 
+            case 'signrawtransactionwithkey':
+                $privkeys = $decodeJsonArg($argMap['privkeys_json'], 'privkeys_json');
+                if (count($privkeys) === 0) {
+                    throw new \InvalidArgumentException('privkeys must not be empty');
+                }
+                $prevouts = isset($argMap['prevtxs_json'])
+                    ? $decodeJsonArg($argMap['prevtxs_json'], 'prevtxs_json')
+                    : [];
+                $sighashtype = isset($argMap['sighashtype']) ? strtoupper((string)$argMap['sighashtype']) : 'ALL';
+                if ($sighashtype !== 'ALL') {
+                    throw new \InvalidArgumentException('unsupported sighashtype: ' . $sighashtype . ' (only ALL supported)');
+                }
+                $firstPrivkey = (string)$privkeys[0];
+                if ($firstPrivkey === '') {
+                    throw new \InvalidArgumentException('first private key must not be empty');
+                }
+                if (preg_match('/^[0-9a-fA-F]{64}$/', $firstPrivkey)) {
+                    $result = \libmona\signrawtransactionwithrawkey((string)$argMap['rawtx_hex'], $prevouts, $firstPrivkey);
+                } else {
+                    $result = \libmona\signrawtransactionwithwifkey((string)$argMap['rawtx_hex'], $prevouts, $firstPrivkey);
+                }
+                break;
+
             case 'signrawtransactionwithrawkey':
-                $prevouts = $decodeJsonArg((string)$argMap['prevouts_json'], 'prevouts_json');
+                $prevouts = $decodeJsonArg($argMap['prevouts_json'], 'prevouts_json');
                 $result = \libmona\signrawtransactionwithrawkey((string)$argMap['rawtx_hex'], $prevouts, (string)$argMap['privkey_raw_hex']);
                 break;
 
             case 'signrawtransactionwithwifkey':
-                $prevouts = $decodeJsonArg((string)$argMap['prevouts_json'], 'prevouts_json');
+                $prevouts = $decodeJsonArg($argMap['prevouts_json'], 'prevouts_json');
                 $result = \libmona\signrawtransactionwithwifkey((string)$argMap['rawtx_hex'], $prevouts, (string)$argMap['privkey_wif']);
                 break;
 
             case 'signrawtransactionwithaddress':
-                $prevouts = $decodeJsonArg((string)$argMap['prevouts_json'], 'prevouts_json');
+                $prevouts = $decodeJsonArg($argMap['prevouts_json'], 'prevouts_json');
                 $keyfile = isset($argMap['keyfile']) ? (string)$argMap['keyfile'] : null;
                 $result = \libmona\signrawtransactionwithaddress((string)$argMap['rawtx_hex'], $prevouts, (string)$argMap['address'], $keyfile);
                 break;
