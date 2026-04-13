@@ -70,6 +70,49 @@ function append_keypair_to_keystore(array $row, string $label = '', ?string $pat
     }
 }
 
+function load_keystore_rows(?string $path = null): array {
+    $path = $path ?? (__DIR__ . '/privkeys.php');
+    if (!file_exists($path)) {
+        return [];
+    }
+
+    $lines = file($path, FILE_IGNORE_NEW_LINES);
+    if ($lines === false) {
+        throw new Exception('failed to read privkeys.php');
+    }
+
+    $rows = [];
+    foreach ($lines as $index => $line) {
+        $lineNo = $index + 1;
+        $trimmed = trim($line);
+        if ($trimmed === '') {
+            continue;
+        }
+        $decoded = json_decode($trimmed, true);
+        if (!is_array($decoded)) {
+            throw new Exception('line ' . $lineNo . ': invalid JSON record in privkeys.php');
+        }
+        $rows[] = [
+            'line' => $lineNo,
+            'row' => $decoded,
+        ];
+    }
+
+    return $rows;
+}
+
+function validate_existing_keystore_row(array $expected, array $existing): array {
+    $fields = ['privkey_raw', 'privkey_wif', 'addr_mona1', 'addr_M', 'addr_P'];
+    $mismatch = [];
+    foreach ($fields as $field) {
+        $existingValue = isset($existing[$field]) ? (string)$existing[$field] : '';
+        if ($existingValue !== (string)$expected[$field]) {
+            $mismatch[] = $field;
+        }
+    }
+    return $mismatch;
+}
+
 function createnewaddress(bool $save = false, string $label = ''): array {
     do {
         $secret32 = random_bytes(32);
@@ -106,8 +149,39 @@ function importprivwifkey(string $wifkey, string $label = ''): array {
 function importprivkey(string $key, string $label = ''): array {
     $trimmed = trim($key);
     if (preg_match('/^[0-9a-fA-F]{64}$/', $trimmed)) {
-        return importprivrawkey($trimmed, $label);
+        $secret32 = hex2bin_safe(str_pad(strtolower($trimmed), 64, '0', STR_PAD_LEFT));
+        if ($secret32 === false || strlen($secret32) !== 32) {
+            throw new Exception('privkey_raw must be 32 bytes hex');
+        }
+        $row = keypair_from_secret32($secret32);
+    } else {
+        [, $secret32, , ] = deserialize_privkey_electrum($trimmed);
+        $row = keypair_from_secret32($secret32);
     }
 
-    return importprivwifkey($trimmed, $label);
+    $keystoreRows = load_keystore_rows();
+    foreach ($keystoreRows as $entry) {
+        $existing = $entry['row'];
+        $isSameRecord = (
+            ((string)($existing['privkey_raw'] ?? '') === $row['privkey_raw']) ||
+            ((string)($existing['privkey_wif'] ?? '') === $row['privkey_wif']) ||
+            ((string)($existing['addr_mona1'] ?? '') === $row['addr_mona1']) ||
+            ((string)($existing['addr_M'] ?? '') === $row['addr_M']) ||
+            ((string)($existing['addr_P'] ?? '') === $row['addr_P'])
+        );
+        if (!$isSameRecord) {
+            continue;
+        }
+
+        $mismatch = validate_existing_keystore_row($row, $existing);
+        if (count($mismatch) === 0) {
+            $row['message'] = 'line ' . $entry['line'] . ': 既に登録されています';
+            $row['line'] = $entry['line'];
+            return $row;
+        }
+        throw new Exception('line ' . $entry['line'] . ': キーストア不整合 [' . implode(', ', $mismatch) . ']');
+    }
+
+    append_keypair_to_keystore($row, $label);
+    return $row;
 }
