@@ -18,6 +18,24 @@ if (PHP_SAPI === 'cli' && realpath($_SERVER['SCRIPT_FILENAME']) === __FILE__) {
             'params' => ['save', 'label'],
             'example' => "php libmona.php createnewaddress true 'my_wallet_label'",
         ],
+        'importprivrawkey' => [
+            'usage' => 'importprivrawkey <rawkey> (label)',
+            'required' => 1,
+            'params' => ['rawkey', 'label'],
+            'example' => "php libmona.php importprivrawkey '3af5a061be34179ec6608d4cd4eaaeb788cae8e1d862fa84288f56ff84beb8d4' 'imported_raw'",
+        ],
+        'importprivwifkey' => [
+            'usage' => 'importprivwifkey <wifkey> (label)',
+            'required' => 1,
+            'params' => ['wifkey', 'label'],
+            'example' => "php libmona.php importprivwifkey 'T52ayqQzJrzBDP5ok7KXe3cNFjf8qpvydDViKrVCpQncipHAyyyW' 'imported_wif'",
+        ],
+        'importprivkey' => [
+            'usage' => 'importprivkey <raw_or_wif_key> (label)',
+            'required' => 1,
+            'params' => ['key', 'label'],
+            'example' => "php libmona.php importprivkey 'T52ayqQzJrzBDP5ok7KXe3cNFjf8qpvydDViKrVCpQncipHAyyyW' 'auto_import'",
+        ],
         'signmessage' => [
             'usage' => 'signmessage <message> <privkey>',
             'required' => 2,
@@ -164,6 +182,21 @@ if (PHP_SAPI === 'cli' && realpath($_SERVER['SCRIPT_FILENAME']) === __FILE__) {
                 $save = array_key_exists('save', $argMap) ? $parseBool01($argMap['save'], 'save') : false;
                 $label = $argMap['label'] ?? '';
                 $result = \libmona\createnewaddress($save, (string)$label);
+                break;
+
+            case 'importprivrawkey':
+                $label = $argMap['label'] ?? '';
+                $result = \libmona\importprivrawkey((string)$argMap['rawkey'], (string)$label);
+                break;
+
+            case 'importprivwifkey':
+                $label = $argMap['label'] ?? '';
+                $result = \libmona\importprivwifkey((string)$argMap['wifkey'], (string)$label);
+                break;
+
+            case 'importprivkey':
+                $label = $argMap['label'] ?? '';
+                $result = \libmona\importprivkey((string)$argMap['key'], (string)$label);
                 break;
 
             case 'signmessage':

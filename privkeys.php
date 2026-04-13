@@ -1,10 +1,1 @@
-[
-    {
-        "label": "テスト",
-        "privkey_wif": "T52ayqQzJrzBDP5ok7KXe3cNFjf8qpvydDViKrVCpQncipHAyyyW",
-        "privkey_raw": "3af5a061be34179ec6608d4cd4eaaeb788cae8e1d862fa84288f56ff84beb8d4",
-        "addr_mona1": "mona1qd808tvqt3y5xp0uawlph33732z0yh835q28azh",
-        "addr_M": "MHYwgLwFGNVwZ1PGD3Sg4YGGMYdPmLYaQy",
-        "addr_P": "PMwjYWr9kt9nK63VAw354Qd719F8qvvxF2"
-    }
-]
+{"create":"2026-04-13T00:00:00+00:00","label":"テスト","privkey_wif":"T52ayqQzJrzBDP5ok7KXe3cNFjf8qpvydDViKrVCpQncipHAyyyW","privkey_raw":"3af5a061be34179ec6608d4cd4eaaeb788cae8e1d862fa84288f56ff84beb8d4","addr_mona1":"mona1qd808tvqt3y5xp0uawlph33732z0yh835q28azh","addr_M":"MHYwgLwFGNVwZ1PGD3Sg4YGGMYdPmLYaQy","addr_P":"PMwjYWr9kt9nK63VAw354Qd719F8qvvxF2"}
