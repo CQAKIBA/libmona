@@ -688,15 +688,46 @@ function load_saved_privkeys(string $keyfile = null): array {
     if (!is_file($keyfile)) {
         throw new Exception('key file not found: ' . $keyfile);
     }
-    $json = file_get_contents($keyfile);
-    if ($json === false) {
+
+    $full = file_get_contents($keyfile);
+    if ($full === false) {
         throw new Exception('failed to read key file');
     }
-    $data = json_decode($json, true);
-    if (!is_array($data)) {
-        throw new Exception('key file is not valid JSON array');
+    $legacy = json_decode($full, true);
+    if (is_array($legacy) && array_keys($legacy) === range(0, count($legacy) - 1)) {
+        return $legacy;
     }
-    return $data;
+
+    $handle = fopen($keyfile, 'rb');
+    if ($handle === false) {
+        throw new Exception('failed to open key file');
+    }
+    $rows = [];
+    $lineNo = 0;
+    while (($line = fgets($handle)) !== false) {
+        $lineNo++;
+        $trimmed = trim($line);
+        if ($trimmed === '') {
+            continue;
+        }
+
+        $decoded = json_decode($trimmed, true);
+        if (!is_array($decoded)) {
+            $jsonError = json_last_error_msg();
+            fwrite(STDERR, sprintf("[keyfile parse error] line %d: %s\n", $lineNo, $jsonError));
+            continue;
+        }
+
+        $rows[] = $decoded;
+    }
+
+    if (!feof($handle)) {
+        fclose($handle);
+        throw new Exception('failed while reading key file');
+    }
+
+    fclose($handle);
+    return $rows;
 }
 
 function signrawtransactionwithaddress(string $rawtx_hex, array $prevouts, string $address, ?string $keyfile = null): array {
