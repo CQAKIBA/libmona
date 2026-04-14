@@ -92,32 +92,32 @@ php libmona.php importprivkey 'T52ayqQzJrzBDP5ok7KXe3cNFjf8qpvydDViKrVCpQncipHAy
 - `addr_P`（P2SH）
 - `line` / `message`（既存登録済みの場合）
 
-#### 2.1 `importprivwithrawkey`
+#### 2.1 `importprivrawkey`
 
 `importprivkey` の raw key 専用版です。
 
 ```bash
-php libmona.php importprivwithrawkey <rawkey> (label)
+php libmona.php importprivrawkey <rawkey> (label)
 ```
 
 **例**
 
 ```bash
-php libmona.php importprivwithrawkey '3af5a061be34179ec6608d4cd4eaaeb788cae8e1d862fa84288f56ff84beb8d4' 'imported_raw'
+php libmona.php importprivrawkey '3af5a061be34179ec6608d4cd4eaaeb788cae8e1d862fa84288f56ff84beb8d4' 'imported_raw'
 ```
 
-#### 2.2 `importprivwithwifkey`
+#### 2.2 `importprivwifkey`
 
 `importprivkey` の WIF 専用版です。
 
 ```bash
-php libmona.php importprivwithwifkey <wifkey> (label)
+php libmona.php importprivwifkey <wifkey> (label)
 ```
 
 **例**
 
 ```bash
-php libmona.php importprivwithwifkey 'T52ayqQzJrzBDP5ok7KXe3cNFjf8qpvydDViKrVCpQncipHAyyyW' 'imported_wif'
+php libmona.php importprivwifkey 'T52ayqQzJrzBDP5ok7KXe3cNFjf8qpvydDViKrVCpQncipHAyyyW' 'imported_wif'
 ```
 
 ---
