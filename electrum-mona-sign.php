@@ -1,4 +1,10 @@
 <?php
+/*
+This file is licensed under the MIT License.
+Copyright (c) 2026 Daisuke JA1UMW / CQAKIBA.TOKYO
+このファイルはMITライセンスです。利用・改変・再配布・商用利用が可能ですが、作者は一切の責任を負いません。詳細は LICENSE ファイルを参照してください。
+*/
+
 
 require_once __DIR__ . '/libmona.php';
 
