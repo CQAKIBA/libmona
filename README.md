@@ -65,7 +65,64 @@ php libmona.php createnewaddress true 'my_wallet_label'
 
 ---
 
-### 2. `signmessage`
+### 2. `importprivkey`
+
+秘密鍵をインポートして、対応アドレス情報を `privkeys.php` に保存します。  
+`<key>` が 64桁hex なら raw key、その他は WIF として自動判定します。
+
+```bash
+php libmona.php importprivkey <raw_or_wif_key> (label)
+```
+
+- `raw_or_wif_key`: 64桁hex または WIF 形式秘密鍵
+- `label`（任意）: 保存時のラベル文字列
+
+**例**
+
+```bash
+php libmona.php importprivkey 'T52ayqQzJrzBDP5ok7KXe3cNFjf8qpvydDViKrVCpQncipHAyyyW' 'auto_import'
+```
+
+**主な返却項目**
+
+- `privkey_wif`
+- `privkey_raw`
+- `addr_mona1`（bech32）
+- `addr_M`（P2PKH）
+- `addr_P`（P2SH）
+- `line` / `message`（既存登録済みの場合）
+
+#### 2.1 `importprivwithrawkey`
+
+`importprivkey` の raw key 専用版です。
+
+```bash
+php libmona.php importprivwithrawkey <rawkey> (label)
+```
+
+**例**
+
+```bash
+php libmona.php importprivwithrawkey '3af5a061be34179ec6608d4cd4eaaeb788cae8e1d862fa84288f56ff84beb8d4' 'imported_raw'
+```
+
+#### 2.2 `importprivwithwifkey`
+
+`importprivkey` の WIF 専用版です。
+
+```bash
+php libmona.php importprivwithwifkey <wifkey> (label)
+```
+
+**例**
+
+```bash
+php libmona.php importprivwithwifkey 'T52ayqQzJrzBDP5ok7KXe3cNFjf8qpvydDViKrVCpQncipHAyyyW' 'imported_wif'
+```
+
+---
+
+### 3. `signmessage`
 
 メッセージに対して電子署名を生成します。
 
@@ -90,7 +147,7 @@ php libmona.php signmessage 'hello mona' 'L1aW4aubDFB7yfras2S1mN3bqg9w7j1Huxu6mA
 
 ---
 
-### 3. `verifymessage`
+### 4. `verifymessage`
 
 署名の妥当性を検証します。
 
@@ -116,7 +173,7 @@ php libmona.php verifymessage 'PM9m3P4QvYpV4Yh6Yf8a8C7oD8uQn2fBvQ' 'H8zQ7z6...ba
 
 ---
 
-### 4. `createrawtransaction`
+### 5. `createrawtransaction`
 
 未署名 Raw Transaction を作成します。
 
@@ -142,7 +199,7 @@ php libmona.php createrawtransaction '[{"txid":"95a6a0fb469f83b2d135a5d43ab0642f
 
 ---
 
-### 5. `signrawtransactionwithkey`
+### 6. `signrawtransactionwithkey`
 
 秘密鍵配列を受け取り、Raw Transaction に署名します。
 
@@ -163,10 +220,9 @@ php libmona.php signrawtransactionwithkey "<rawtx_hex>" '["<privatekey>",...]' (
 php libmona.php signrawtransactionwithkey '0200...0000' '["T8Q5..."]' '[{"txid":"95a6...","vout":0,"address":"mona1q...","amount":"0.10000000"}]' 'ALL'
 ```
 
----
+#### 6.1 `signrawtransactionwithrawkey`
 
-### 6. `signrawtransactionwithrawkey`
-
+`signrawtransactionwithkey` の raw key 専用ラッパーです。  
 32byte 生秘密鍵（hex）で Raw Transaction に署名します。
 
 ```bash
@@ -179,10 +235,9 @@ php libmona.php signrawtransactionwithrawkey <rawtx_hex> <prevouts_json> <privke
 php libmona.php signrawtransactionwithrawkey '0200...0000' '[{"txid":"95a6a0fb469f83b2d135a5d43ab0642fc31217938a290e3e6e1832babff708f3","vout":0,"address":"mona1qxc7zz03f4eqql4jgwf9pzcsw3h537c5axqervu","amount":"0.10000000"}]' 'your_32byte_hex_privkey'
 ```
 
----
+#### 6.2 `signrawtransactionwithwifkey`
 
-### 7. `signrawtransactionwithwifkey`
-
+`signrawtransactionwithkey` の WIF 専用ラッパーです。  
 WIF 形式秘密鍵で Raw Transaction に署名します。
 
 ```bash
@@ -197,7 +252,7 @@ php libmona.php signrawtransactionwithwifkey '0200000001f308f7bfba32186e3e0e298a
 
 ---
 
-### 8. `signrawtransactionwithaddress`
+### 7. `signrawtransactionwithaddress`
 
 保存済みアドレス情報を使って Raw Transaction に署名します。
 

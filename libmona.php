@@ -30,6 +30,18 @@ if (PHP_SAPI === 'cli' && realpath($_SERVER['SCRIPT_FILENAME']) === __FILE__) {
             'params' => ['wifkey', 'label'],
             'example' => "php libmona.php importprivwifkey 'T52ayqQzJrzBDP5ok7KXe3cNFjf8qpvydDViKrVCpQncipHAyyyW' 'imported_wif'",
         ],
+        'importprivwithrawkey' => [
+            'usage' => 'importprivwithrawkey <rawkey> (label)',
+            'required' => 1,
+            'params' => ['rawkey', 'label'],
+            'example' => "php libmona.php importprivwithrawkey '3af5a061be34179ec6608d4cd4eaaeb788cae8e1d862fa84288f56ff84beb8d4' 'imported_raw'",
+        ],
+        'importprivwithwifkey' => [
+            'usage' => 'importprivwithwifkey <wifkey> (label)',
+            'required' => 1,
+            'params' => ['wifkey', 'label'],
+            'example' => "php libmona.php importprivwithwifkey 'T52ayqQzJrzBDP5ok7KXe3cNFjf8qpvydDViKrVCpQncipHAyyyW' 'imported_wif'",
+        ],
         'importprivkey' => [
             'usage' => 'importprivkey <raw_or_wif_key> (label)',
             'required' => 1,
@@ -192,6 +204,16 @@ if (PHP_SAPI === 'cli' && realpath($_SERVER['SCRIPT_FILENAME']) === __FILE__) {
             case 'importprivwifkey':
                 $label = $argMap['label'] ?? '';
                 $result = \libmona\importprivwifkey((string)$argMap['wifkey'], (string)$label);
+                break;
+
+            case 'importprivwithrawkey':
+                $label = $argMap['label'] ?? '';
+                $result = \libmona\importprivwithrawkey((string)$argMap['rawkey'], (string)$label);
+                break;
+
+            case 'importprivwithwifkey':
+                $label = $argMap['label'] ?? '';
+                $result = \libmona\importprivwithwifkey((string)$argMap['wifkey'], (string)$label);
                 break;
 
             case 'importprivkey':
