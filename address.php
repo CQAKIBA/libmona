@@ -146,14 +146,6 @@ function importprivwifkey(string $wifkey, string $label = ''): array {
     return $row;
 }
 
-function importprivwithrawkey(string $rawkey, string $label = ''): array {
-    return importprivrawkey($rawkey, $label);
-}
-
-function importprivwithwifkey(string $wifkey, string $label = ''): array {
-    return importprivwifkey($wifkey, $label);
-}
-
 function importprivkey(string $key, string $label = ''): array {
     $trimmed = trim($key);
     if (preg_match('/^[0-9a-fA-F]{64}$/', $trimmed)) {
